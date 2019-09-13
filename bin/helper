@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+
+$autoloaded = false;
+$paths = [
+    __DIR__.'/../vendor/autoload.php',
+    __DIR__.'/../../../vendor/autoload.php',
+];
+foreach ($paths as $path) {
+    if (file_exists($path)) {
+        require_once $path;
+        $autoloaded = true;
+
+        break;
+    }
+}
+if (false === $autoloaded) {
+    throw new Exception('Please run composer install to set up project dependencies');
+}
+require_once __DIR__.'/../src/Helper.php'; 
+require_once __DIR__.'/../src/CredentialProvider.php'; 
+use freshdeskhelper\Helper;
+Helper::displayTickets();
