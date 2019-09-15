@@ -20,4 +20,4 @@ if (false === $autoloaded) {
 require_once __DIR__.'/../src/Helper.php'; 
 require_once __DIR__.'/../src/CredentialProvider.php'; 
 use freshdeskhelper\Helper;
-Helper::displayTickets();
+Helper::updateAllNSADates();

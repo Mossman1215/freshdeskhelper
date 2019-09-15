@@ -5,6 +5,7 @@ use Exception;
 class CredentialProvider
 {
     const ENV_KEY = 'FRESHDESK_API_KEY';
+    const ENV_ID = 'FRESHDESK_AGENT_ID';
     const ENV_PROFILE = 'default';
     /**
      * Get the default profile, either defined as ENV_PROFILE or
@@ -41,7 +42,7 @@ class CredentialProvider
      *
      * @throws Exception
      *
-     * @return array
+     * @return Credential
      */
     public static function fromini($profile = null, $filename = null)
     {
@@ -60,14 +61,18 @@ class CredentialProvider
         if (!isset($data[$profile])) {
             throw new Exception(sprintf('Profile "%s" not found in credentials file', $profile));
         }
-
+        if (
+            !isset($data[$profile]['freshdesk_agent_id'])
+        ) {
+            throw new Exception(sprintf('Profile "%s" is missing freshdesk_agent_id', $profile));
+        }
         if (
             !isset($data[$profile]['freshdesk_api_key'])
         ) {
-            throw new Exception(sprintf('Profile "%s" contains no credentials', $profile));
+            throw new Exception(sprintf('Profile "%s" is missing freshdesk_api_key', $profile));
         }
 
-        return $data[$profile]['freshdesk_api_key'];
+        return [$data[$profile]['freshdesk_api_key'] , $data[$profile]['freshdesk_agent_id']];
     }
 
     /**
@@ -89,3 +94,4 @@ class CredentialProvider
         return ($homeDrive && $homePath) ? sprintf('%s%s', $homeDrive, $homePath) : null;
     }
 }
+
