@@ -4,12 +4,13 @@ namespace freshdeskhelper;
 use DateTime;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Promise;
 use freshdeskhelper\CredentialProvider;
 
 class Helper{
     
     public function getTickets(){
-        $logger= $GLOBALS['logger']->info('getting tickets');
+        $GLOBALS['logger']->info('getting tickets');
         $client = new Client([
             'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
             'timeout'  => 2.0,
@@ -29,25 +30,41 @@ class Helper{
         }
     }
     public function updateAllNSADates(){
+        $client = new Client([
+            'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
+            'timeout'  => 2.0,
+        ]);
+        $creds = CredentialProvider::fromini();
         $today = new DateTime('now');
         $listoftickets = Helper::getTickets();
         $ticketsToUpdate =[];
+        $todayNSADate = ['custom_fields'=>['cf_next_scheduled_action'=> date('Y-m-d',$today->getTimestamp())]];
         foreach ($listoftickets['results'] as $ticket) {
             $ticketNSA = DateTime::createFromFormat('Y-m-d',$ticket['custom_fields']['cf_next_scheduled_action']);
             if ($ticketNSA < $today) {
                 #add id to tickets to update list
-                array_push($ticketsToUpdate,$ticket['id']);
+                $ticketsToUpdate[$ticket['id']] = $client->requestAsync('PUT','tickets/'.$ticket['id'],[
+                    'auth' => [$creds[0],'x', 'basic'],
+                    'json' => $todayNSADate,
+                    'debug' => true
+                ]);
             }
-        
         }
-        $GLOBALS['logger']->info(count($ticketsToUpdate).' tickets to update');
-        echo var_export($listoftickets).PHP_EOL;
-        echo var_export($ticketsToUpdate).PHP_EOL;
-        echo 'date to update to'.PHP_EOL;
-        echo json_encode(['custom_fields'=>['cf_next_scheduled_action'=> date('Y-m-d',$today->getTimestamp())]]).PHP_EOL;
+        $GLOBALS['logger']->info(count($ticketsToUpdate).' tickets to update NSA');
+        $GLOBALS['logger']->info('updating NSA on ticket(s):'.implode(",",array_keys($ticketsToUpdate)));
+        
+        
+        $results = Promise\unwrap($ticketsToUpdate);
+        foreach ($ticketsToUpdate as $ticketID) {
+            #how to get status code from results array?
+            // if($response->getStatusCode()==200){
+            //     $GLOBALS['logger']->info('updated ticket:'.$ticketID);
+            // }else{
+            //     $GLOBALS['logger']->error('failure to update ticket:'.$ticketID.$response->getReasonPhrase());
+            // }
+        }
     } 
-    public function displayTickets(){
-        $listoftickets = Helper::getTickets();
+    public function displayTickets(array $listoftickets){
         #print ticket summary as symfony console table
         foreach ($listoftickets['results'] as $ticket) {
             echo $ticket['subject'] . PHP_EOL;
