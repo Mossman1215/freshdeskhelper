@@ -45,23 +45,22 @@ class Helper{
                 #add id to tickets to update list
                 $ticketsToUpdate[$ticket['id']] = $client->requestAsync('PUT','tickets/'.$ticket['id'],[
                     'auth' => [$creds[0],'x', 'basic'],
-                    'json' => $todayNSADate,
-                    'debug' => true
+                    'json' => $todayNSADate
                 ]);
             }
         }
         $GLOBALS['logger']->info(count($ticketsToUpdate).' tickets to update NSA');
         $GLOBALS['logger']->info('updating NSA on ticket(s):'.implode(",",array_keys($ticketsToUpdate)));
         
-        
         $results = Promise\unwrap($ticketsToUpdate);
-        foreach ($ticketsToUpdate as $ticketID) {
+        foreach (array_keys($ticketsToUpdate) as $ticketID) {
+            $response = $results[$ticketID];
             #how to get status code from results array?
-            // if($response->getStatusCode()==200){
-            //     $GLOBALS['logger']->info('updated ticket:'.$ticketID);
-            // }else{
-            //     $GLOBALS['logger']->error('failure to update ticket:'.$ticketID.$response->getReasonPhrase());
-            // }
+            if($response->getStatusCode() == 200){
+                $GLOBALS['logger']->info('updated ticket:'.$ticketID);
+            }else{
+                $GLOBALS['logger']->error('failure to update ticket:'.$ticketID.$response->getReasonPhrase());
+            }
         }
     } 
     public function displayTickets(array $listoftickets){
