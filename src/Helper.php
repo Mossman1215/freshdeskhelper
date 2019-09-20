@@ -8,6 +8,29 @@ use GuzzleHttp\Promise;
 use freshdeskhelper\CredentialProvider;
 
 class Helper{
+    /**
+     * 
+     * @return array
+     */
+    public function freshdeskrequest(string $authString,Client $client,int $page){
+        $request = new Request('GET','tickets?filter=new_and_my_open&per_page=100&page='.$page,[
+            'Authorization' => ['Basic '. $authString],
+        ]);
+        
+        $response = $client->send($request);
+        if ($response->getStatusCode() == 200) {
+            $GLOBALS['logger']->info('request success getting page '.$page);
+            $newAndMyTickets = json_decode($response->getBody()->getContents(),true);
+            if(count($newAndMyTickets)>0){
+                return array_merge($newAndMyTickets,Helper::freshdeskrequest($authString,$client,$page+1));
+            }else{
+                return $newAndMyTickets;
+            }
+        }else{
+            $GLOBALS['logger']->error('failure to request page of tickets '. $response->getStatusCode().PHP_EOL.$response->getReasonPhrase());
+            return [];
+        }
+    }
     
     public function getTickets(){
         $GLOBALS['logger']->info('getting tickets');
@@ -16,18 +39,15 @@ class Helper{
             'timeout'  => 2.0,
         ]);
         $creds = CredentialProvider::fromini();
-        $auth_string = base64_encode($creds[0].':X');
-        $request = new Request('GET','search/tickets?query="(status:2%20OR%20status:3%20OR%20status:6%20OR%20status:7)%20AND%20agent_id:'.$creds[1].'"',[
-            'Authorization' => ['Basic '. $auth_string],
-        ]);
-        
-        $response = $client->send($request);
-        if ($response->getStatusCode() == 200) {
-            $GLOBALS['logger']->info('request success');
-            return json_decode($response->getBody()->getContents(),true);
-        }else{
-            $GLOBALS['logger']->error('failure to request tickets '. $response->getStatusCode().PHP_EOL.$response->getReasonPhrase());
+        $authString = base64_encode($creds[0].':X');
+        $newAndMyTickets = Helper::freshdeskrequest($authString,$client,$page = 1);
+        if(count($newAndMyTickets)==0){
+            print('failure to retrieve tickets'.PHP_EOL);
         }
+        $myTickets = array_filter($newAndMyTickets,function ($ticket) use($creds){
+            return $ticket["responder_id"] == $creds[1];
+        });
+        return $myTickets;
     }
     public function updateAllNSADates(){
         $client = new Client([
@@ -39,7 +59,7 @@ class Helper{
         $listoftickets = Helper::getTickets();
         $ticketsToUpdate =[];
         $todayNSADate = ['custom_fields'=>['cf_next_scheduled_action'=> date('Y-m-d',$today->getTimestamp())]];
-        foreach ($listoftickets['results'] as $ticket) {
+        foreach ($listoftickets as $ticket) {
             $ticketNSA = DateTime::createFromFormat('Y-m-d',$ticket['custom_fields']['cf_next_scheduled_action']);
             if ($ticketNSA < $today) {
                 #add id to tickets to update list
