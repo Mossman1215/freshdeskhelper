@@ -13,7 +13,10 @@ class Helper{
      * @return array
      */
     public function freshdeskrequest(string $authString,Client $client,int $page){
-        $request = new Request('GET','tickets?filter=new_and_my_open&per_page=100&page='.$page,[
+        $windowConstant = 7890000;
+        $window = time()- $windowConstant;
+        $date = substr(date(DateTime::ATOM,$window),0,19).'Z';
+        $request = new Request('GET','tickets?updated_since='.$date.'&per_page=100&page='.$page,[
             'Authorization' => ['Basic '. $authString],
         ]);
         
@@ -36,7 +39,7 @@ class Helper{
         $GLOBALS['logger']->info('getting tickets');
         $client = new Client([
             'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
-            'timeout'  => 2.0,
+            'timeout'  => 5.0,
         ]);
         $creds = CredentialProvider::fromini();
         $authString = base64_encode($creds[0].':X');
@@ -45,6 +48,12 @@ class Helper{
             print('failure to retrieve tickets'.PHP_EOL);
         }
         $myTickets = array_filter($newAndMyTickets,function ($ticket) use($creds){
+            if($ticket['status'] == 5){
+                return false;
+            }
+            if($ticket['status'] == 4){
+                return false;
+            }
             return $ticket["responder_id"] == $creds[1];
         });
         return $myTickets;
@@ -52,7 +61,7 @@ class Helper{
     public function updateAllNSADates(){
         $client = new Client([
             'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
-            'timeout'  => 2.0,
+            'timeout'  => 5.0,
         ]);
         $creds = CredentialProvider::fromini();
         $today = new DateTime('now');
