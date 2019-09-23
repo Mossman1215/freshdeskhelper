@@ -91,10 +91,48 @@ class Helper{
                 $GLOBALS['logger']->error('failure to update ticket:'.$ticketID.$response->getReasonPhrase());
             }
         }
-    } 
+    }
+    public function fixNSADates(string $brokenDateStr){
+        #given an NSA date
+        #get all ticket ids & closure date filtered to $brokenDate
+        #then update tickets in the list via another async request
+        $client = new Client([
+            'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
+            'timeout'  => 5.0,
+        ]);
+        $creds = CredentialProvider::fromini();
+        $listoftickets = Helper::getTickets();
+        $ticketsToUpdate =[];
+        $brokenDate = DateTime::createFromFormat('Y-m-d',$brokenDateStr);
+        foreach ($listoftickets as $ticket) {
+            $ticketNSA = DateTime::createFromFormat('Y-m-d',$ticket['custom_fields']['cf_next_scheduled_action']);
+            if ($ticketNSA == $brokenDate) {
+                #add id to tickets to update list
+                $closureDate = substr($ticket['due_by'],0,10);
+                $closureJson = ['custom_fields'=>['cf_next_scheduled_action'=> $closureDate]];
+                $ticketsToUpdate[$ticket['id']] = $client->requestAsync('PUT','tickets/'.$ticket['id'],[
+                    'auth' => [$creds[0],'x', 'basic'],
+                    'json' => $closureJson
+                ]);
+            }
+        }
+        $GLOBALS['logger']->info(count($ticketsToUpdate).' tickets to fix NSA to closure date');
+        $GLOBALS['logger']->info('updating NSA on ticket(s):'.implode(",",array_keys($ticketsToUpdate)));
+        
+        $results = Promise\unwrap($ticketsToUpdate);
+        foreach (array_keys($ticketsToUpdate) as $ticketID) {
+            $response = $results[$ticketID];
+            #how to get status code from results array?
+            if($response->getStatusCode() == 200){
+                $GLOBALS['logger']->info('updated ticket:'.$ticketID);
+            }else{
+                $GLOBALS['logger']->error('failure to update ticket:'.$ticketID.$response->getReasonPhrase());
+            }
+        }
+    }
     public function displayTickets(array $listoftickets){
         #print ticket summary as symfony console table
-        foreach ($listoftickets['results'] as $ticket) {
+        foreach ($listoftickets as $ticket) {
             echo $ticket['subject'] . PHP_EOL;
             echo var_export($ticket).PHP_EOL;
         }
