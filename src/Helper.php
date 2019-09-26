@@ -9,10 +9,21 @@ use GuzzleHttp\Promise;
 class Helper
 {
     /**
+     * build a guzzle client on demand
+     * @return Client
+     */
+    public function getClient(int $timeout)
+    {
+        return new Client([
+            'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
+            'timeout'  => $timeout,
+        ]);
+    }
+    /**
      *
      * @return array
      */
-    public function freshdeskrequest(string $authString, Client $client, int $page)
+    public function freshdeskSubRequest(string $authString, Client $client, int $page)
     {
         $windowConstant = 7890000;
         $window = time()- $windowConstant;
@@ -26,7 +37,7 @@ class Helper
             $GLOBALS['logger']->info('request success getting page '.$page);
             $newAndMyTickets = json_decode($response->getBody()->getContents(), true);
             if (count($newAndMyTickets)>0) {
-                return array_merge($newAndMyTickets, Helper::freshdeskrequest($authString, $client, $page+1));
+                return array_merge($newAndMyTickets, Helper::freshdeskSubRequest($authString, $client, $page+1));
             } else {
                 return $newAndMyTickets;
             }
@@ -35,17 +46,17 @@ class Helper
             return [];
         }
     }
-    
+    /**
+     * get all of the users tickets that are not closed or resolved
+     * @return array
+     */
     public function getTickets()
     {
         $GLOBALS['logger']->info('getting tickets');
-        $client = new Client([
-            'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
-            'timeout'  => 5.0,
-        ]);
+        $client = Helper::getClient(5);
         $creds = CredentialProvider::fromini();
         $authString = base64_encode($creds[0].':X');
-        $newAndMyTickets = Helper::freshdeskrequest($authString, $client, $page = 1);
+        $newAndMyTickets = Helper::freshdeskSubRequest($authString, $client, $page = 1);
         if (count($newAndMyTickets)==0) {
             print('failure to retrieve tickets'.PHP_EOL);
         }
@@ -60,12 +71,12 @@ class Helper
         });
         return $myTickets;
     }
-    public function updateAllNSADates()
+    /**
+     * updates all NSA dates for tickets assigned to the user obtained in getcredentials
+     */
+    public function updateAllNSADates($dryrun)
     {
-        $client = new Client([
-            'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
-            'timeout'  => 5.0,
-        ]);
+        $client = Helper::getClient(5);
         $creds = CredentialProvider::fromini();
         $today = new DateTime('now');
         $listoftickets = Helper::getTickets();
@@ -83,15 +94,18 @@ class Helper
         }
         $GLOBALS['logger']->info(count($ticketsToUpdate).' tickets to update NSA');
         $GLOBALS['logger']->info('updating NSA on ticket(s):'.implode(",", array_keys($ticketsToUpdate)));
-        
-        $results = Promise\unwrap($ticketsToUpdate);
-        foreach (array_keys($ticketsToUpdate) as $ticketID) {
-            $response = $results[$ticketID];
-            #how to get status code from results array?
-            if ($response->getStatusCode() == 200) {
-                $GLOBALS['logger']->info('updated ticket:'.$ticketID);
-            } else {
-                $GLOBALS['logger']->error('failure to update ticket:'.$ticketID.$response->getReasonPhrase());
+        if ($dryrun) {
+            print('updating NSA on ticket(s):'.implode(",", array_keys($ticketsToUpdate)).PHP_EOL);
+        } else {
+            $results = Promise\unwrap($ticketsToUpdate);
+            foreach (array_keys($ticketsToUpdate) as $ticketID) {
+                $response = $results[$ticketID];
+                #how to get status code from results array?
+                if ($response->getStatusCode() == 200) {
+                    $GLOBALS['logger']->info('updated ticket:'.$ticketID);
+                } else {
+                    $GLOBALS['logger']->error('failure to update ticket:'.$ticketID.$response->getReasonPhrase());
+                }
             }
         }
     }
