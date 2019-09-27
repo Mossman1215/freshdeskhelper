@@ -1,28 +1,18 @@
 #!/usr/bin/env php
 <?php
 
-$autoloaded = false;
-$paths = [
-    __DIR__.'/../vendor/autoload.php',
-    __DIR__.'/../../../vendor/autoload.php',
-];
-foreach ($paths as $path) {
-    if (file_exists($path)) {
-        require_once $path;
-        $autoloaded = true;
+require "vendor/autoload.php";
 
-        break;
-    }
-}
-if (false === $autoloaded) {
-    throw new Exception('Please run composer install to set up project dependencies');
-}
 #initialise logging
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 $logger = new Logger('freshdeskhelper');
 $logger->pushHandler(new StreamHandler(__DIR__.'/../logs/freshdeskhelper.log', Logger::DEBUG));
-require_once __DIR__.'/../src/Helper.php'; 
-require_once __DIR__.'/../src/CredentialProvider.php'; 
-use freshdeskhelper\Helper;
-Helper::updateAllNSADates();
+use Symfony\Component\Console\Application;
+use freshdeskhelper\Command\UpdateNSA;
+$application = new Application();
+
+// ... register commands
+$application->add(new UpdateNSA());
+
+$application->run();
