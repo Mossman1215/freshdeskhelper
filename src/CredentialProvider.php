@@ -7,6 +7,8 @@ class CredentialProvider
     const ENV_KEY = 'FRESHDESK_API_KEY';
     const ENV_ID = 'FRESHDESK_AGENT_ID';
     const ENV_PROFILE = 'default';
+    const ENV_USER = 'DASHBOARD_USER';
+    const ENV_PASSWORD = 'DASHBOARD_PWD';
     /**
      * Get the default profile, either defined as ENV_PROFILE or
      * falling back to "default".
@@ -71,8 +73,17 @@ class CredentialProvider
         ) {
             throw new Exception(sprintf('Profile "%s" is missing freshdesk_api_key', $profile));
         }
-
-        return [$data[$profile]['freshdesk_api_key'] , $data[$profile]['freshdesk_agent_id']];
+        if (
+            !isset($data[$profile]['dashboard_user'])
+        ) {
+            throw new Exception(sprintf('Profile "%s" is missing dashboard_user', $profile));
+        }
+        if (
+            !isset($data[$profile]['dashboard_pwd'])
+        ) {
+            throw new Exception(sprintf('Profile "%s" is missing dashboard_pwd', $profile));
+        }
+        return [$data[$profile]['freshdesk_api_key'] , $data[$profile]['freshdesk_agent_id'],$data[$profile]['dashboard_user'],$data[$profile]['dashboard_pwd']];
     }
 
     /**
