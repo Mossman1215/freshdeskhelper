@@ -10,9 +10,10 @@ $logger = new Logger('freshdeskhelper');
 $logger->pushHandler(new StreamHandler(__DIR__.'/../logs/freshdeskhelper.log', Logger::DEBUG));
 use Symfony\Component\Console\Application;
 use freshdeskhelper\Command\UpdateNSA;
+use freshdeskhelper\Command\SetNSATriage;
 $application = new Application();
 
 // ... register commands
 $application->add(new UpdateNSA());
-
+$application->add(new SetNSATriage());
 $application->run();

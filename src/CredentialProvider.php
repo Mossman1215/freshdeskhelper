@@ -6,6 +6,7 @@ class CredentialProvider
 {
     const ENV_KEY = 'FRESHDESK_API_KEY';
     const ENV_ID = 'FRESHDESK_AGENT_ID';
+    const ENV_TRIAGE = 'FRESHDESK_TRIAGE_ID';
     const ENV_PROFILE = 'default';
     /**
      * Get the default profile, either defined as ENV_PROFILE or
@@ -71,8 +72,13 @@ class CredentialProvider
         ) {
             throw new Exception(sprintf('Profile "%s" is missing freshdesk_api_key', $profile));
         }
+        if (
+            !isset($data[$profile]['freshdesk_triage_id'])
+        ) {
+            throw new Exception(sprintf('Profile "%s" is missing freshdesk_triage_id', $profile));
+        }
 
-        return [$data[$profile]['freshdesk_api_key'] , $data[$profile]['freshdesk_agent_id']];
+        return [$data[$profile]['freshdesk_api_key'] , $data[$profile]['freshdesk_agent_id'],$data[$profile]['freshdesk_triage_id']];
     }
 
     /**

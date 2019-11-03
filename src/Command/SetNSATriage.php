@@ -6,10 +6,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use freshdeskhelper\Helper;
 
-class UpdateNSA extends Command
+class SetNSATriage extends Command
 {
     // the name of the command (the part after "bin/console")
-    protected static $defaultName = 'update-nsa';
+    protected static $defaultName = 'set-nsa-triage';
 
     protected function configure()
     {
@@ -23,7 +23,7 @@ class UpdateNSA extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         // ...
-        Helper::updateAllMyNSADates($input->getOption('dry-run'));
+        Helper::setTriageNSA($input->getOption('dry-run'));
     }
 }
 
