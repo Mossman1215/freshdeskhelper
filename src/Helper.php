@@ -120,10 +120,7 @@ class Helper
         $authString = base64_encode($creds[0].':X');
         $triageGroup = $creds[2];
         $today = new DateTime('now');
-        $todayNSADate = [
-            'type' => 'Request',
-            'custom_fields'=>['cf_next_scheduled_action'=> date('Y-m-d', $today->getTimestamp())]
-        ];
+        
         $GLOBALS['logger']->info('getting triage tickets');
         $request = new Request('GET', 'search/tickets?query="group_id:'.$triageGroup .' AND status:2"', [
             'Authorization' => ['Basic '. $authString],
@@ -135,7 +132,16 @@ class Helper
             $ticketsToUpdate = [];
             if (count($tickets)>0) {
                 foreach ($tickets as $ticket) {
+                    $todayNSADate = [
+                        'custom_fields'=>['cf_next_scheduled_action'=> date('Y-m-d', $today->getTimestamp())]
+                    ];
                     if ($ticket['custom_fields']['cf_next_scheduled_action'] == null) {
+                        if ($ticket['type']==null) {
+                            $todayNSADate = [
+                                'type' => 'Request',
+                                'custom_fields'=>['cf_next_scheduled_action'=> date('Y-m-d', $today->getTimestamp())]
+                            ];
+                        }
                         $ticketsToUpdate[$ticket['id']] = $client->requestAsync('PUT', 'tickets/'.$ticket['id'], [
                             'auth' => [$creds[0],'x', 'basic'],
                             'json' => $todayNSADate
