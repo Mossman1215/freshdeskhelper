@@ -5,6 +5,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use freshdeskhelper\Helper;
+use Symfony\Component\Console\Helper\Table;
 
 class GetMyTickets extends Command
 {
@@ -18,15 +19,18 @@ class GetMyTickets extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        // ...
-        $tickets = Helper::getMyTickets();
-        if($input->getOption('json')){
-         $output->writeln(\json_encode($tickets));
-        }else{
-          foreach ($tickets as $id => $ticket) {
-            $output->writeln($ticket['subject']);
-          }
+      $tickets = Helper::getMyTickets();
+      if($input->getOption('json')){
+        $output->writeln(\json_encode($tickets));
+      }else{
+        $table = new Table($output);
+        $table
+            ->setHeaders(['ID', 'Subject','URL']);
+        foreach ($tickets as $id => $ticket) {
+          $table ->addRow([$ticket['id'],$ticket['subject'],'https://silverstripe.freshdesk.com/a/tickets/'.$ticket['id']]);
         }
+        $table->render();
+      }
     }
 }
 
