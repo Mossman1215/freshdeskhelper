@@ -15,7 +15,7 @@ class Helper
     public function getClient(int $timeout)
     {
         return new Client([
-            'base_uri' => 'https://silverstripe.freshdesk.com/api/v2/',
+            'base_uri' => 'https://silverstripe.freshservice.com/api/v2/',
             'timeout'  => $timeout,
         ]);
     }

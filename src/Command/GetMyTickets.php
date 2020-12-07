@@ -27,7 +27,7 @@ class GetMyTickets extends Command
         $table
             ->setHeaders(['ID', 'Subject','URL']);
         foreach ($tickets as $id => $ticket) {
-          $table ->addRow([$ticket['id'],$ticket['subject'],'https://silverstripe.freshdesk.com/a/tickets/'.$ticket['id']]);
+          $table ->addRow([$ticket['id'],$ticket['subject'],'https://silverstripe.freshservice.com/a/tickets/'.$ticket['id']]);
         }
         $table->render();
       }
